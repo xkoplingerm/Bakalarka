@@ -1,0 +1,220 @@
+SLOVENSKÁ TECHNICKÁ UNIVERZITA V BRATISLAVE
+FAKULTA ELEKTROTECHNIKY A INFORMATIKY
+
+APLIKÁCIA PRE SPRÁVU VÝDAVKOV S POUŽITÍM OCR PRE MOBILNÚ PLATFORMU ANDROID
+
+
+2017	Michal Köplinger
+ 
+SLOVENKÁ TECHNICKÁ UNIVERZITA V BRATISLAVE
+FAKULTA ELEKTROTECHNIKY A INFORMATIKY 
+
+APLIKÁCIA PRE SPRÁVU VÝDAVKOV S POUŽITÍM OCR PRE MOBILNÚ PLATFORMU ANDROID  
+
+BAKALÁRSKA PRÁCA
+
+Študijný program:	Aplikovaná informatika
+
+Pracovisko (katedra/ústav):	Ústav informatiky a matematiky 
+
+Vedúci bakalárskej práce:	Mgr. Marek Sýs, PhD.
+
+	
+Bratislava 2017
+Michal Köplinger
+
+ 
+Zadanie záverečnej práce
+Cieľom témy je vytvoriť aplikáciu pre mobilnú platformu Android, ktorá bude slúžiť na správu výdavkov. Aplikácia má byť schopná z odfoteného pokladničného bloku / faktúry rozpoznávať sumu, kategóriu, dátum atď. pomocou optického rozpoznávania znakov (OCR) a vhodne graficky tieto údaje znázorňovať. Používateľ si bude môcť vytvoriť vlastné kategórie do ktorých sa budú výdavky zaraďovať. Spracované údaje sa budú exportovať do Excel súboru. Aplikácia má pracovať s databázou v ktorej budú uložené kľúčové slová na rozpoznanie.
+ 
+
+Abstrakt
+Táto práca sa zaoberá technológiou optického rozpoznávania znakov (OCR) a jej použitím v mobilnej aplikácií na platforme Android. Budeme ju používať k správe výdavkov z odfotených pokladničných bločkov. V úvode si povieme niečo o existujúcich riešeniach a aké zlepšenia alebo zmeny prinesie naša aplikácia. Potom si stručne charakterizujeme operačný systém Android a OCR vo všeobecnosti. V ďalších kapitolách sa budeme zaoberať celým procesom rozpoznávania nami použitou OCR technológiou a jej implementáciou v našej aplikácií.
+ 
+Abstrakt v cudzom jazyku
+Text abstraktu v svetovom jazyku je potrebný pre integráciu do medzinárodných informačných systémov (napr. The Network Digital Library of Theses and Dissertations). Ak nie je možné jazykovú verziu umiestniť na jednej strane so slovenským abstraktom, je potrebné umiestniť ju na samostatnú stranu (cudzojazyčný abstrakt nemožno deliť a uvádzať na dvoch stranách).
+ 
+Obsah
+1	Úvod	5
+2	Existujúce riešenia	6
+2.1	Správa výdavkov	6
+2.1.1	Wallet	6
+2.1.2	Expensify	7
+2.2	Tesseract	7
+2.3	Prínos voči existujúcim riešeniam	9
+3	Charakteristika operačného systému Android	9
+3.1	Architektúra	10
+4	OCR	11
+4.1	História OCR	11
+4.2	Proces OCR	11
+5	Tessercat	12
+5.1	Architektúra Tesseract	13
+5.2	Proces	14
+5.2.1	Prahovanie	14
+5.2.2	Rozloženie strany	15
+5.2.3	Rozpoznávanie	15
+5.2.4	Proces trénovania	16
+5.2.5	Kontextová úprava	19
+6	Android a knižnica Tesseract	19
+7	Záver	20
+
+ 
+1	Úvod
+V dnešnej dobe sa kladie stále väčší dôraz na automatizáciu, teda zrýchlenie a zjednodušenie triviálnych činností, ku ktorým nie je potrebný ľudský úsudok. Pre ďalší pokrok je absolútne nevyhnutné, čo najefektívnejšie získavať a spracovávať informácie. Príklad takejto automatizácie je aj Optical Character Recognition (ďalej už len OCR), čo v preklade znamená optické rozpoznávanie znakov. Ide teda o automatickú identifikáciu grafických znakov, ktoré sú opticky snímané.
+Táto práca by mala oboznámiť čitateľa so súčasnými technológiami OCR a ich fungovaním. Ďalej popisuje tvorbu mobilnej aplikácie na správu výdavkov s ich použitím.
+Pre našu implementáciu sme zvolili operačný systém Android od spoločnosti Google. Vybrali sme ho, aby sme oslovili čo najväčší počet užívateľov. Podľa štatistík z roku 2014 bol počet predaných telefónov s týmto operačným systémom 5-krát väčší ako konkurenčné zariadenia so systémom iOS.[13] Google na svojich weboch ponúka dokumentáciu a manuály pre programátorov, čím uľahčuje implementáciu.
+	Po hľadaní vhodného riešenia OCR pre platformu Android sme zistili, že drvivá väčšina neplatených aplikácií využíva open-source knižnicu Tesseract. Táto knižnica je rovnako ako Android vyvíjaná spoločnosťou Google. Tá na svojom webe poskytuje návody ako sa s knižnicou pracuje v spolupráci s vývojovými prostrediami. Vďaka tomu je integrácia knižnice do aplikácie jednoduchšia. Tesseract podporuje cez sto jazykov a to vrátane slovenčiny. V dnešnej dobe je veľmi rozšírený vďaka vysokej presnosti a licenčnej politike. [8]
+	Pre databázovú časť riešenia sme vybrali databázu SQLite, ktorá má natívnu podporu v systéme Android a je doporučená na webových stránkach pre vývojárov.
+	Aplikácia ihneď po štarte spustí fotoaparát pre zhotovenie fotografie. Ďalšou možnosťou bude výber obrázka z galérie. V tomto momente by mala byť práca používateľa skončiť. O všetko ostatné by sa mala postarať aplikácia. OCR z bločku rozpozná text tj. čas, dátum a sumu. Potom pozrie do vopred vytvorenej databázy kľúčových slov kde bude hľadať názov obchodu rozpoznaný z bločku. Ak nájde zhodu tak automaticky zaradí nákup do kategórie. Tieto kategórie si bude užívateľ vytvárať sám.
+Podľa zozbieraných údajov potom aplikácia vytvorí prehľadné grafy podľa kategórií nákupov alebo časového obdobia.
+Používateľovi má byť umožnený výstupu do súboru, keby chcel s údajmi pracovať aj na inom zariadení.
+2	Existujúce riešenia
+2.1	Správa výdavkov
+Príkladov aplikácií na správu výdavkov je naozaj veľa. Podľa počtu stiahnutí a hodnotení používateľov sme vybrali dve konkurenčné aplikácie a to Expensify a Wallet.
+2.1.1	Wallet
+Z tejto aplikácie si môžeme brať príklad v grafickom zobrazovaní údajov a v dizajnovej stránke užívateľského prostredia. Naopak vylepšiť by sa mala automatizácia aplikácie.
++ dizajn				- bez OCR
++ user-friendly			- nutná častá užívateľská interakcia
++ prehľadné grafy
+
+     
+ 
+2.1.2	Expensify
+Táto aplikácia na rozdiel od Wallet podporuje rozpoznávanie textu pomocou OCR. Pri fotení je ale nutné otvorenie inej aplikácie, ktorá je v zariadení dostupná na zhotovovanie fotografií. Prechod medzi aplikáciami má za následok pomalší chod. Vysokú časovú náročnosť má proces po zhotovení fotografie. Tá sa posiela na server a výsledok sa v aplikácií zobrazí až za niekoľko minút.
+Expensify disponuje radou funkcií, ktoré toho so správou výdavkov nemajú moc spoločného ako napríklad sledovanie stráveného času na cestách alebo počet prejdených kilometrov. [8]
++ OCR				- interne neposkytuje fotoaparát
+					- časová náročnosť rozpoznávania
+					- zbytočné funkcie navyše
+
+     
+2.2	Tesseract
+Pre príklad využitia Tesseractu sme podľa počtu stiahnutí a hodnotení používateľov  vybrali dve neplatené aplikácie a to Text Fairy a OCR Instantly Free.
+Keďže obe na OCR využívajú rovnakú knižnicu sú ich výsledky rozpoznávania podobné. Líšia sa hlavne predspracovaním obrazu, ktoré je vykonané ešte pred samotným spustením OCR. [8]
+Na obrázkoch nižšie vidíme, že tieto aplikácie dosahujú výborné výsledky pri rozpoznávaní textu z fotografií. V našej aplikácií sa pokúsime o dosiahnutie podobnej úrovne rozpoznávania.
+
+      
+[ocr instantly free]
+      
+[Text fairy]
+
+2.3	Prínos voči existujúcim riešeniam
+V našej aplikácií sa pokúsime docieliť, aby používateľ musel do jej chodu čo najmenej zasahovať. Po začatí používania si do databázy vloží kľúčové slová tj. názvy obchodov ktoré navštevuje a priradí im kategóriu (napr. „Tesco“, kategória potraviny obr. nižšie). Po rozpoznaní textu z odfoteného bločka bude aplikácia hľadať kľúčové slová medzi tými rozpoznanými a keď narazí na zhodu automaticky zaradí nákup do kategórie, priradí mu sumu a dátum nákupu. Jediná starosť pre používateľa bude vyhotovenie fotografie.
+Aplikácia má byť automatizovaná a jednoduchá. Štatistiky o výdavkoch bude znázorňovať za určité obdobie a podľa kategórií. Všetky zozbierané údaje bude naviac možné exportovať do súboru, aby sme ich mohli používať aj v inom zariadení. 
+3	Charakteristika operačného systému Android
+Android je open source platforma, ktorá vznikla najmä pre mobilné zariadenia. Zahŕňa v sebe operačný systém (založený na jadre Linux), middleware, používateľské rozhranie a aplikácie. Samotná platforma Android dáva k dispozícii nielen operačný systém s používateľským prostredím pre koncových používateľov, ale aj kompletné riešenie nasadenia operačného systému (špecifikácia ovládačov a pod.) pre mobilných operátorov a výrobcov zariadení a v neposlednom rade pre vývojárov aplikácií poskytuje efektívne nástroje pre ich vývoj - Software Development Kit. [2]
+3.1	Architektúra
+ 	„Android je rozdelený do 5 vrstiev. Každá vrstva má svoj účel a nemusí byť priamo oddelená od ostatných vrstiev.
+Najnižšou vrstvou architektúry je jadro operačného systému, ktoré tvorí abstraktnú vrstvu medzi používaným hardvérom a zvyškom softvéru vo vyšších vrstvách. Jadro systému Androidu je postavené na Linuxe vo verzii 2.6.“ [2] Poskytuje základné služby ako napríklad správu pamäte a procesov, hardwarové ovládače atď. 
+Ďalšou vrstvou sú knižnice, ktoré sú napísané v C/C++ a android Runtime, ktorý obsahuje aplikačný virtuálny stroj Dalvik. Dalvik Virtual Machine (DVM) je registrovo orientovaná architektúra, využíva základné vlastnosti linuxového jadra, ako je správa pamäte alebo práca s vláknami. V tejto vrstve sú tiež obsiahnuté základné knižnice programovacieho jazyka Java. Preklad aplikácie napísanej pre Android prebieha skompilovaním zdrojového Java kódu do Java byte kódu pomocou rovnakého kompilátora, ako sa používa v prípade prekladu Java aplikácií. Potom sa prekompiluje Java byte kód pomocou Dalvik kompilátora a výsledný Dalvik byte kód je spustený na DVM. Každá spustená Android aplikácie má svoj vlastný proces s vlastnou inštanciou DVM. [2]
+Vrstva application framework poskytuje prístup k veľkému počtu služieb, ktoré môžu byť použité priamo v aplikáciách. Tieto služby môžu sprístupňovať dáta v iných aplikáciách, prvky používateľského rozhrania, aplikácie bežiace na pozadí, hardvér používaného zariadenia a mnoho ďalších služieb a funkcií. [2]
+Najvyššiu vrstvu systému tvoria základné aplikácie, ktoré využívajú bežní používatelia. [2]
+Architektúra operačného systému je znázornená na obrázku.
+ 
+4	OCR
+4.1	História OCR
+Počiatky OCR možno vysledovať od technológií zahŕňajúcich telegrafie a vytvárania čítacích zariadení pre nevidiacich. V roku 1914, Emanuel Goldberg vyvinul stroj, ktorý čítal znaky a prevádzal ich do štandardného telegrafného kódu. Súčasne Edmund Fournier d'Albe vyvinul Optophone, ručný skener, ktorý pri pohybe naprieč vytlačenou stránkou produkoval tóny, ktoré zodpovedali špecifickým písmenám alebo znakom. V roku 1920 a do 1930 Emanuel Goldberg sa vyvíjal čo on volal "štatistický stroj" pre vyhľadávanie mikrofilmov archívov pomocou optického systém rozpoznávania kódu. S príchodom inteligentných telefónov, môže byť OCR použité v aplikáciách pripojených na internet pre mobilné zariadenia, ktoré text zachytili pomocou fotoaparátu. Zariadenia, ktoré nemajú funkciu OCR vstavanú do operačného systému zvyčajne používajú OCR API. OCR API vráti extrahovaný text, spolu s informáciami o umiestnení detekovaného textu v pôvodnom obraze späť do aplikácie pre ďalšie spracovanie (napríklad prevod textu na reč). Rozpoznávanie môže prebiehať na úrovni znakov, celých slov a dokonca aj slovných spojení. [1]
+4.2	Proces OCR
+Proces začína tým, že zadáme vstupný obrázok pre spracovanie obrazu. V nasledujúcej fáze rozdeľujeme celistvé oblasti ako bloky textu, tabuľky alebo obrázky. Po tomto kroku sú nájdené oblasti s textom. Predtým ako prebehne segmentácia, čo je rozdelenie na jednotlivé znaky, musí byť vykonané predspracovanie obrazu. To zahŕňa tri hlavné procesy: otočenie do správnej polohy, odstránenie šumu a prahovanie.
+
+
+ 
+
+
+
+
+
+Následne je text rozdelený na riadky a jednotlivé znaky. Potom môže nasledovať rozpoznávacia logika. Rozpoznávanie je proces porovnávania znakov a ich charakteristických rysov z neznámeho textu s charakteristickými rysmi vzorov jednotlivých znakov. Samozrejme môže dôjsť k chybám, preto je potrebné, aby proces prešiel korektúrou. Oprava znakov porovnáva získané slová so slovami zo slovníka daného jazyka a opravuje chyby. Počas toho sa program učí tieto znaky správne identifikovať. [9]
+ 
+
+5	Tessercat
+Tesseract je nástroj na optické rozpoznávanie znakov. Pôvodne bol vyvíjaný spoločnosťou Hewlett Packard v rokoch 1984 až 1994. V tej dobe boli OCR nástroje schopné pracovať len s perfektne vytlačeným textom. Tesseract na konci vývoja dosahoval oveľa vyššiu presnosť ako dostupné OCR nástroje. Ako prvý umožňoval čítanie bielej farby na čiernom podklade. Vzhľadom na implementáciu v jazyku C/C++ je multiplatformový. Nikdy nebol prezentovaný ako komerčný produkt. V roku 2005 Hewlett Packard uvoľnila Tesseract ako open-source nástroj pre optické rozpoznávanie znakov a od roku 2006 je jeho vývoj sponzorovaný spoločnosťou Google. Google pracuje na ďalšom vývoji a taktiež zaisťuje podporu pre používateľov. Samotný Tesseract je iba nástroj a neobsahuje grafické rozhranie. Výsledok rozpoznávania je závislí na kvalite vstupných dát. Tie preto musia byť predspracované. Jedná sa o úpravu rotácie a sklonu písma, ktoré by malo mať veľkosť aspoň 20 pixelov. Taktiež musí byť odfiltrovaná rôzna úroveň jasu, aby sa predišlo strate dát pri prahovaní. [3]
+5.1	Architektúra Tesseract
+Prvým krokom je segmentácia obrazu pomocou adaptívneho prahovania, ktoré oddelí popredie obrazu od znakov na pozadí. Výsledkom je obraz obsahujúci len čiernu a bielu farbu.
+Druhý krok je analýza spojitých objektov tj. slov a viet vo forme pixelov. V tomto kroku sa taktiež ukladajú informácie o obrysoch jednotlivých znakov. Následne sa obrysy objektov spájajú do menších celkov, textových riadkov, analyzuje sa či je medzi znakmi pevná medzera, alebo je použité proporcionálne písmo. Podľa typu medzery sa riadky rozdelia na jednotlivé slová. 
+Proces rozpoznávania textu prebieha v dvoch fázach. V prvej fáze sa pokusne rozpoznávajú slová a každé vyhovujúce sa predá adaptívnemu klasifikátoru ako časť trénovacích dát. Ten má potom väčšiu šancu klasifikovať znaky. 
+Prvá fáza nám poskytla informácie o kontexte, preto v druhej fáze prebieha rozpoznávanie celého textu znovu. [4] Môže sa stať, že nám slová rozpoznané na konci prvej fázy budú nápomocné pri slovách na nazačiatku textu. Vďaka adaptívnemu klasifikátoru môžu byť rozpoznané aj neznáme slová z prvej fázy. Tento proces je identický k ľudskej snahe niečo sa naučiť. Prvý krát si prečítame celý text, o čom vlastne je a následne si text čítame druhý, tretí krát kým mu úplne neporozumieme.
+ 
+5.2	Proces
+5.2.1	Prahovanie
+Vo vyššie uvedenom obrázku je uvažovaný vstup už po procese prahovania. V programe Tesseract je predspracovanie obrazu riešené open-source knižnicou Leptonica. Po tomto kroku, keď je z pôvodného obrázku získaný dvojfarebný, a za predpokladu, že má obraz takzvaný bimodálny histogram je použitý Otsu algoritmus. [5] Bimodálny histogram obsahuje dve maximá, kde jedno je pre svetlú farbu a druhé pre tmavú. [7] Pri prahovaní sa najprv normalizuje pozadie, nastavením bielej farby. Následne sa z histogramu obrázka odvodí prahová hodnota ležiaca medzi lokálnymi maximami. Nevýhoda tejto metódy je, že obrázok musí mať bimodálny histogram. Väčšina obrázkov pri rozpoznávaní textu ho však má keďže obsahuje rozpoznávaný text (popredie) na nejakom pozadí. Výhoda tejto metódy spočíva v jej vysokej rýchlosti. [12]
+ 
+5.2.2	Rozloženie strany
+Analýza rozloženia strany sa v programe Tesseract rieši pomocou detekcie konca strany. [10] Každý text písaný textovým editorom alebo publikačným systémom obsahuje takzvané netlačené znaky (medzera, koniec riadku…). Počas analýzy sa oddelia stĺpce s textom, odstránia sa polia, ktoré neobsahujú text ako napríklad tabuľky a obrázky. Algoritmus na detekciu línie riadkov dokáže bez nutnosti otočenia rozpoznať aj šikmé riadky. [7]
+ 
+Ďalším krokom je nájdenie horizontálnej línie a blokov textu. Každému znaku sa vytvorí hranica tak, že stredová línia medzery musí byť v strede medzi ľavou hranicou pravého znaku a pravou hranicou ľavého znaku. Žiadna časť znaku nesmie presiahnuť ohraničenie. Hranice sú vytvorené tak, aby čo najpresnejšie ohraničovali všetky znaky. Pri spojení viacerých znakov sa ich Tesseract pokúša oddeliť. Keď predpokladáme, že je spojený text čierny na bielom pozadí, tak sa rozdeľovanie uskutočňuje pomocou filtra maximum. Tento filter vyberie maximálnu hodnotu intenzity z okolia bodu a nahradí ju upravený pixel. Ak po tejto úprave nenastane zlepšenie výsledku, tak je zmena vrátená do pôvodného stavu. [11]
+ 
+Ďalšia možnosť na zlepšenie účinnosti, je spájať fragmentové znaky, ktoré mohli vzniknúť chybným určením prahovej hodnoty. To sa používa inverzný filter minimum. Touto metódou dôjde k rozšíreniu hrán (diletácia) a spojeniu častí znakov, ktoré boli oddelené. Pri fragmentácií jedného znaku na dve časti sa používa zúženie hrán (erózia). [11] Tieto operácie značne spomaľujú celý proces, čo Tesseract značne limituje. 
+ 
+5.2.3	Rozpoznávanie
+K správnemu rozpoznaniu textu je potrebné natrénovanie. Tesseract obsahuje v základnom balíčku databázu s viac ako 60 jazykmi v štandardných fontoch, ktoré je schopný rozpoznať. Vďaka procesu trénovania umožnuje Tesseract v prípade potreby rozpoznávania neštandardných znakov vytvoriť nový jazyk. Na natrénovanie postačuje 20 vzoriek od každého z 94 znakov pre 8 fontov a 4 typy písma. Rozpoznávanie prebieha v dvoch fázach, ktoré sme si stručne popísali vyššie. Každému rozpoznanému slovu je priradená hodnota, ktorá znázorňuje mieru zhody. Táto hodnota by mala byť čo najvyššia, aby bolo slovo správne rozpoznané a predané adaptívnemu klasifikátoru na tréning. [6]
+ 
+
+5.2.4	Proces trénovania
+5.2.4.1	Vytvorenie BOX súboru
+Prvým krokom v procese trénovania nového jazyka je vytvorenie takzvaného BOX súboru. Je to textový dokument obsahujúcu súradnice všetkých objektov a im zodpovedajúci význam, ktoré pri rozpoznávaní Tesseract označil ako určitý znak. Takýchto súborov môže byť viac, napríklad pre rozdielne fonty rovnakého jazyka. [6]
+ [4]
+Obr. 4 znázorňuje príklad BOX súboru. Prvé číslo „4“ značí význam znaku, ktorý sa nachádza vo vstupnom obrázku v obdĺžniku so súradnicami x = 58, y = 95, šírkou 31px a výškou 49px. 
+Tesseract pravdepodobne nerozpoznal všetky znaky správne, preto je potreba tento súbor editovať. K takejto úprave môžeme použiť napríklad program jTessBoxEditor, ktorý je voľne dostupný. [6]
+  [obr5]
+5.2.4.2	Proces trénovania vytvorenej znakovej sady
+V tomto kroku sa vykoná proces učenia na základe upraveného BOX súboru. Pre vyššiu presnosť potrebuje Tesseract poznať aj možné znaky, ktoré sa na výstupe môžu objaviť. K tomuto účelu sa vytvorí znaková sada z naučených  dát vstupného obrázku s neznámym jazykom alebo fontom. Na generovanie súboru s takýmito znakmi slúži program unicharset_extractor, ktorý je súčasťou základného balíčka Tesseract. Výsledkom je vygenerovaný súbor „unicharset“, ktorý na každom riadku obsahuje popis vlastností jedného zo znakov. Na prvej pozícií sa nachádza znak zodpovedajúci kódovaniu UTF-8, na druhej číslo v šestnástkovej sústave reprezentujúce binárnu masku popisujúcu vlastnosti znaku. [6]
+
+Vlastnosti sú popísané nasledovným poradím bitov:
+alfanumerický znak, malé písmeno, veľké písmeno, číslica, interpunkčné znamienko.
+
+Znak „A“ zodpovedá vlastnostiam veľké písmeno a alfanumerický znak. Binárne číslo je preto 00101. V šestnástkovej sústave 5.
+
+Znak „1“ zodpovedá vlastnosti číslica. Binárne číslo je preto 01000. V šestnástkovej sústave 8.
+
+Ďalším krokom v procese trénovania je vytvorenie súboru „font_properties“, ktorý obsahuje popis vlastností fontu. Následne je potrebné zoskupiť všetky získané vlastnosti a vytvoriť prototyp znakov. Pre tento účel sú v základnom balíčku Tesseractu programy cntraining, shapeclustering a mftraining, ktoré zoskupujú tvarové vlastnosti znakov. [6]
+Výstupom mftraining je súbor „pffmtable“, ktorý obsahuje počet očakávaných vlastností pre každý znak a súbor „inttemp“, ktorý obsahuje prototypy tvarov.[6]
+ [4]
+a - ukážka prototypu znaku
+b - znak, ktorý treba klasifikovať
+c - extrakcia znakov, ktoré sa otestujú na zhodu s prototypom znaku
+e – aplikácia príznakov na prototyp znaku
+
+Výstup cntraining je súbor „normproto“ vytvorený z trénovacích dát, ktorý obsahuje informácie o vlastnostiach, ktoré sú použitá na normalizáciu znakov. Zoskupovanie treba vykonať pre všetky fonty nového jazyka.
+V poslednej časti treba zoskupiť všetky vzniknuté súbory, ktoré boli vytvorené počas trénovania. Týmto súborom (“pffmtable”, “inttemp”, “shapetable”, “normproto”) je treba k názvu pridať prefix jazyka, ktorý by mal obsahovať tri písmená identifikujúce použitý jazyk podľa normy ISO 639-2. Výstupom je súbor „num.traineddata“, ktorý musí byť umiestnený v adresári „tessdata“. [6]
+
+S takto natrénovanými dátami môžeme nechať Tesseract rozpoznávať znaky. 
+5.2.5	Kontextová úprava
+Tesseract umožňuje navzájom porovnávať rozpoznané slová, ktoré sú uložene v databáze. Toto porovnávanie je založené na prechádzaní grafu, kde sú hrany spájajúce uzly ohodnotené príslušným znakom. Nutnosťou je, aby bol graf vyjadrujúci kombinácie slov acyklický. V inom prípade by pri prechádzaní grafu mohla vzniknúť nekonečná slučka. Takýto graf má označenie DAWG (directed acyclic word graph) [7]
+6	Android a knižnica Tesseract
+Pre chod knižnice Tesseract na platforme Android sa dá použiť knižnica tess-two, ktorá je dostupná z Gradle repozitára. Tss-two taktiež obsahuje knižnicu na úpravu obrázkov Leptonica. Tá má za úlohu úpravu obrázkov ešte pred rozpoznávaním. Kvôli lepšej presnosti sa odporúča predspracovanie obrázku ešte pred použitím knižnice. [8]
+ 
+
+7	Záver
+V závere je potrebné v stručnosti zhrnúť dosiahnuté výsledky vo vzťahu k stanoveným cieľom.
+
+ 
+[1] Optical character recognition. Wikipedia, 2017, [ cit. 17.01.2017; 16:30 ]. Dostupné na webovskej stránke (world wide web): https://en.wikipedia.org/wiki/Optical_character_recognition
+
+[2] Android (operačný systém). Wikipedia, 2017, [ cit. 17.01.2017; 16:30 ]. Dostupné na webovskej stránke (world wide web): https://sk.wikipedia.org/wiki/Android_(opera%C4%8Dn%C3%BD_syst%C3%A9m)
+
+ [3] Tesseract (software). Wikipedia, 2017, [ cit. 17.01.2017; 16:30 ]. Dostupné na webovskej stránke (world wide web): https://en.wikipedia.org/wiki/Tesseract_(software)
+
+[4] MARINIČ, M.: ROZPOZNÁVÁNÍ TEXTU Z OBRAZOVÝCH DAT. vutbr.cz, 2014, [ cit. 17.01.2017; 16:30 ]. Dostupné na webovskej stránke (world wide web): https://www.vutbr.cz/www_base/zav_prace_soubor_verejne.php?file_id=85140
+
+[5] Otsu's method. Wikipedia, 2017, [ cit. 18.01.2017; 13:30 ]. Dostupné na webovskej stránke (world wide web): https://en.wikipedia.org/wiki/Otsu's_method
+
+[6] tesseract-ocr/docs. GitHub.com, 2016, [ cit. 18.01.2017; 13:30 ]. Dostupné na webovskej stránke (world wide web): https://github.com/tesseract-ocr/docs
+
+[7] HAVRÁNEK, P.: Optimalizace procesu rozpoznávání textu pomocí Visi on Builder. otik.uk.zcu.cz, 2012, [ cit. 18.01.2017; 13:30 ]. Dostupné na webovskej stránke (world wide web): https://otik.uk.zcu.cz/bitstream/handle/11025/2362/DP_Havranek.pdf?sequence=1
+
+ [8] BAMBUCH, V.: MOBILNÍ APLIKACE PRO SKENOVÁNÍ A ROZPOZNÁ- VÁNÍ POKLADNÍCH ÚČTENEK. vutbr.cz, 2016, [ cit. 18.01.2017; 13:30 ]. Dostupné na webovskej stránke (world wide web): https://www.vutbr.cz/www_base/zav_prace_soubor_verejne.php?file_id=132105
+
+[9] NOGHE, P.: VYHODNOCENÍ TESTOVÝCH FORMULÁŘŮ POMOCÍ OCR. vutbr.cz, 2016, [ cit. 18.01.2017; 13:30 ]. Dostupné na webovskej stránke (world wide web): https://www.vutbr.cz/www_base/zav_prace_soubor_verejne.php?file_id=65230
+
+[10] SMITH, R. - ANTONOVA, D. - SHYANG, D.: Adapting the Tesseract Open Source OCR Engine for Multilingual OCR. static.googleusercontent.com, 2009, [ cit. 18.01.2017; 13:30 ]. Dostupné na webovskej stránke (world wide web): http://static.googleusercontent.com/media/research.google.com/cs//pubs/archive/35248.pdf
+[11] MILAN, P.: FILTRACE OBRAZŮ. vutbr.cz, -, [ cit. 18.01.2017; 13:30 ]. Dostupné na webovskej stránke (world wide web): http://ottp.fme.vutbr.cz/~pavelek/optika/1506.htm
+
+[12] BIRDAL, T.: Famous Otsu Thresholding in C#. codeproject.com, 2009, [ cit. 18.01.2017; 13:30 ]. Dostupné na webovskej stránke (world wide web): https://www.codeproject.com/articles/38319/famous-otsu-thresholding-in-c
+[13] Farhad, M.:A Murky Road Ahead for Android, Despite Market Dominance. Květen 2015, ISSN 0362-4331
+
+[obr5] http://vietocr.sourceforge.net/training.html
+
+
+
+
+
