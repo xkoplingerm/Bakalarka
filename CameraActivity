@@ -1,0 +1,134 @@
+package com.example.acerntb.ocr;
+
+import android.app.Activity;
+import android.content.res.AssetManager;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.os.Bundle;
+import android.view.View;
+import android.widget.TextView;
+
+import com.googlecode.tesseract.android.TessBaseAPI;
+
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+
+/**
+ * Created by acerNtb on 1.3.2017.
+ */
+
+public class CameraActivity extends Activity {
+
+    Bitmap image;
+    byte[] data;
+    private TessBaseAPI mTess;
+    String datapath = "";
+    @Override
+    public void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.ocr);
+        Bundle extras = getIntent().getExtras();
+        data = extras.getByteArray("data");
+        image = BitmapFactory.decodeByteArray(data, 0, data.length);
+        String language = "eng";
+        datapath = getFilesDir()+ "/tesseract/";
+        mTess = new TessBaseAPI();
+
+        checkFile(new File(datapath + "tessdata/"));
+
+        mTess.init(datapath, language);
+    }
+    public void processImage(View view){
+        String kategoria = "";
+        String datum = "";
+        String cena = "";
+        Matcher mDatum, mCena;
+        Pattern pDatum = Pattern.compile("\\d{1,2}\\p{Punct}\\d{1,2}\\p{Punct}\\d{4}");
+        Pattern pCena = Pattern.compile("\\d{1,2}[.,]\\d{2}");
+        List<String> klucoveSlova = new ArrayList<String>();
+        klucoveSlova.addAll(Arrays.asList("TESCO","KAUFLAND","DM"));
+        String OCRresult = null;
+        mTess.setImage(image);
+        OCRresult = mTess.getUTF8Text();
+        String[] parts = OCRresult.split("\n| ");
+        TextView OCRTextView = (TextView) findViewById(R.id.OCRTextView);
+        for(int i = 0; i < parts.length; i++) {
+            mDatum = pDatum.matcher(parts[i]);
+            mCena = pCena.matcher(parts[i]);
+            if (klucoveSlova.get(0).equals(parts[i])) {
+                kategoria =  "Potraviny T";
+            }
+            else if (klucoveSlova.get(1).equals(parts[i])) {
+                kategoria = "Potraviny K";
+            }
+            else if (klucoveSlova.get(2).equals(parts[i])) {
+                kategoria = "Drogeria";
+            }
+            else if (mDatum.matches()){
+                datum = mDatum.group();
+            }
+            else if (mCena.matches()){
+                cena = mCena.group();
+            }
+            else{}
+        }
+        //OCRresult = kategoria + "\n" + datum + "\n" + cena;
+        OCRresult = OCRresult + "\n" + kategoria + "\n" + datum + "\n" + cena;
+        OCRTextView.setText(OCRresult);
+    }
+
+    private void checkFile(File dir) {
+        if (!dir.exists()&& dir.mkdirs()){
+            copyFiles();
+        }
+        if(dir.exists()) {
+            String datafilepath = datapath+ "/tessdata/eng.traineddata";
+            File datafile = new File(datafilepath);
+
+            if (!datafile.exists()) {
+                copyFiles();
+            }
+        }
+    }
+
+    private void copyFiles() {
+        try {
+            String filepath = datapath + "/tessdata/eng.traineddata";
+            AssetManager assetManager = getAssets();
+
+            InputStream instream = assetManager.open("tessdata/eng.traineddata");
+            OutputStream outstream = new FileOutputStream(filepath);
+
+            byte[] buffer = new byte[1024];
+            int read;
+            while ((read = instream.read(buffer)) != -1) {
+                outstream.write(buffer, 0, read);
+            }
+
+
+            outstream.flush();
+            outstream.close();
+            instream.close();
+
+            File file = new File(filepath);
+            if (!file.exists()) {
+                throw new FileNotFoundException();
+            }
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+}
