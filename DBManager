@@ -1,0 +1,129 @@
+package com.example.acerntb.bakalarka;
+
+import android.content.ContentValues;
+import android.content.Context;
+import android.database.Cursor;
+import android.database.SQLException;
+import android.database.sqlite.SQLiteDatabase;
+
+import java.util.ArrayList;
+import java.util.List;
+
+public class DBManager {
+
+    private DatabaseHelper dbHelper;
+
+    private Context context;
+
+    private SQLiteDatabase database;
+
+    public DBManager(Context c) {
+        context = c;
+    }
+
+    public DBManager open() throws SQLException {
+        dbHelper = new DatabaseHelper(context);
+        database = dbHelper.getWritableDatabase();
+        return this;
+    }
+    public List<String> getQuery(){
+        List<String> list = new ArrayList<String>();
+        ArrayList<Cursor> alc2=dbHelper.getData("SELECT "+ DatabaseHelper.OBCHOD +" FROM "+DatabaseHelper.TABLE2_NAME);
+        Cursor cursor = alc2.get(0);
+        if(cursor == null)
+            return null;
+        else{
+            do{
+                list.add(cursor.getString(0));
+            }while(cursor.moveToNext());
+        }
+        return list;
+    }
+    public List<List<String>> selectAll(){
+        List<String> obchody = new ArrayList<String>();
+        List<String> kategorie = new ArrayList<String>();
+        List<List<String>> list = new ArrayList<List<String>>();
+
+        Cursor cursor = database.rawQuery("SELECT * FROM CATEGORY",null);
+        cursor.moveToFirst();
+        while ( !cursor.isAfterLast()) {
+            obchody.add(cursor.getString(cursor.getColumnIndex("obchod")));
+            kategorie.add(cursor.getString(cursor.getColumnIndex("kategoria")));
+            cursor.moveToNext();
+        }
+        list.add(obchody);
+        list.add(kategorie);
+        return list;
+    }
+
+    public int countQuery(){
+        ArrayList<Cursor> alc2=dbHelper.getData("SELECT COUNT(kategoria) FROM CATEGORY GROUP BY kategoria");
+        //Cursor cursor = database.rawQuery("SELECT COUNT(kategoria) FROM CATEGORY GROUP BY kategoria",null);
+        Cursor cursor = alc2.get(0);
+        if (cursor != null) {
+            cursor.moveToFirst();
+        }
+        int a = cursor.getCount();
+        return a;
+    }
+
+    public void close() {
+        dbHelper.close();
+    }
+
+    public void insert(String obchod, String suma, String datum) {
+        ContentValues contentValue = new ContentValues();
+        contentValue.put(DatabaseHelper.OBCHOD, obchod);
+        contentValue.put(DatabaseHelper.SUMA, suma);
+        contentValue.put(DatabaseHelper.DATUM, datum);
+        database.insert(DatabaseHelper.TABLE_NAME, null, contentValue);
+    }
+    public void insertC(String kategoria, String obchod) {
+        ContentValues contentValue = new ContentValues();
+        contentValue.put(DatabaseHelper.KATEGORIA, kategoria);
+        contentValue.put(DatabaseHelper.OBCHOD, obchod);
+        database.insert(DatabaseHelper.TABLE2_NAME, null, contentValue);
+    }
+
+    public Cursor fetch() {
+        String[] columns = new String[] { DatabaseHelper._ID, DatabaseHelper.OBCHOD, DatabaseHelper.SUMA,
+                DatabaseHelper.DATUM};
+        Cursor cursor = database.query(DatabaseHelper.TABLE_NAME, columns, null, null, null, null, null);
+        if (cursor != null) {
+            cursor.moveToFirst();
+        }
+        return cursor;
+    }
+    public Cursor fetchC() {
+        String[] columns = new String[] { DatabaseHelper._ID, DatabaseHelper.KATEGORIA, DatabaseHelper.OBCHOD};
+        Cursor cursor = database.query(DatabaseHelper.TABLE2_NAME,columns, null, null, null, null, null);
+        if (cursor != null) {
+            cursor.moveToFirst();
+        }
+        return cursor;
+    }
+
+    public int update(long _id, String obchod, String suma, String datum) {
+        ContentValues contentValues = new ContentValues();
+        contentValues.put(DatabaseHelper.OBCHOD, obchod);
+        contentValues.put(DatabaseHelper.SUMA, suma);
+        contentValues.put(DatabaseHelper.DATUM, datum);
+        int i = database.update(DatabaseHelper.TABLE_NAME, contentValues, DatabaseHelper._ID + " = " + _id, null);
+        return i;
+    }
+    public int updateC(long _id, String kategoria, String obchod) {
+        ContentValues contentValues = new ContentValues();
+        contentValues.put(DatabaseHelper.KATEGORIA, kategoria);
+        contentValues.put(DatabaseHelper.OBCHOD, obchod);
+        int i = database.update(DatabaseHelper.TABLE2_NAME, contentValues, DatabaseHelper._ID + " = " + _id, null);
+        return i;
+    }
+
+    public void delete(long _id) {
+        database.delete(DatabaseHelper.TABLE_NAME, DatabaseHelper._ID + "=" + _id, null);
+    }
+    public void deleteC(long _id) {
+        database.delete(DatabaseHelper.TABLE2_NAME, DatabaseHelper._ID + "=" + _id, null);
+    }
+
+}
