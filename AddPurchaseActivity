@@ -1,8 +1,10 @@
-package com.example.acerntb.bakalarka;
+package com.journaldev.sqlite;
 
 import android.app.Activity;
 import android.content.Intent;
 import android.os.Bundle;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.ArrayAdapter;
@@ -10,8 +12,13 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.Spinner;
 
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.List;
+import java.util.TimeZone;
 
 public class AddPurchaseActivity extends Activity implements OnClickListener {
 
@@ -19,6 +26,8 @@ public class AddPurchaseActivity extends Activity implements OnClickListener {
     private EditText datumEditText, sumaEditText;
     private Spinner obchodSpinner;
     private List<String> list = new ArrayList<String>();
+    List<List<String>> list2 = new ArrayList<List<String>>();
+
     private DBManager dbManager;
 
     @Override
@@ -29,44 +38,111 @@ public class AddPurchaseActivity extends Activity implements OnClickListener {
 
         setContentView(R.layout.activity_add_record);
 
-
-
         addTodoBtn = (Button) findViewById(R.id.add_record);
 
         dbManager = new DBManager(this);
         dbManager.open();
         list = dbManager.getQuery();
+        dbManager.countQuery();
+        dbManager.selectDate("2000");
         addTodoBtn.setOnClickListener(this);
 
-        Intent intent = getIntent();
-        String obchod = intent.getStringExtra("obchod");
-        String datum = intent.getStringExtra("datum");
-        String cena = intent.getStringExtra("cena");
-
         obchodSpinner = (Spinner) findViewById(R.id.spinner);
-        if(list != null) {
+        if (list != null) {
             ArrayAdapter<String> adapter = new ArrayAdapter<String>(this,
                     android.R.layout.simple_spinner_item, list);
             obchodSpinner.setAdapter(adapter);
         }
-
         datumEditText = (EditText) findViewById(R.id.datum_edittext);
-        sumaEditText = (EditText) findViewById(R.id.suma_edittext);
 
-        datumEditText.setText(datum);
-        sumaEditText.setText(cena);
-        obchodSpinner.setSelection(getIndex(obchodSpinner,obchod));
+        TextWatcher tw = new TextWatcher() {
+            private String current = "";
+            private String ddmmyyyy = "DDMMYYYY";
+            private Calendar cal = Calendar.getInstance();
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+                if (!s.toString().equals(current)) {
+                    String clean = s.toString().replaceAll("[^\\d.]", "");
+                    String cleanC = current.replaceAll("[^\\d.]", "");
+
+                    int cl = clean.length();
+                    int sel = cl;
+                    for (int i = 2; i <= cl && i < 6; i += 2) {
+                        sel++;
+                    }
+                    //Fix for pressing delete next to a forward slash
+                    if (clean.equals(cleanC)) sel--;
+
+                    if (clean.length() < 8) {
+                        clean = clean + ddmmyyyy.substring(clean.length());
+                    } else {
+                        //This part makes sure that when we finish entering numbers
+                        //the date is correct, fixing it otherwise
+                        int day = Integer.parseInt(clean.substring(0, 2));
+                        int mon = Integer.parseInt(clean.substring(2, 4));
+                        int year = Integer.parseInt(clean.substring(4, 8));
+
+                        if (mon > 12) mon = 12;
+                        cal.set(Calendar.MONTH, mon - 1);
+                        year = (year < 1900) ? 1900 : (year > 2100) ? 2100 : year;
+                        cal.set(Calendar.YEAR, year);
+                        // ^ first set year for the line below to work correctly
+                        //with leap years - otherwise, date e.g. 29/02/2012
+                        //would be automatically corrected to 28/02/2012
+
+                        day = (day > cal.getActualMaximum(Calendar.DATE)) ? cal.getActualMaximum(Calendar.DATE) : day;
+                        clean = String.format("%02d%02d%02d", day, mon, year);
+                    }
+
+                    clean = String.format("%s/%s/%s", clean.substring(0, 2),
+                            clean.substring(2, 4),
+                            clean.substring(4, 8));
+
+                    sel = sel < 0 ? 0 : sel;
+                    current = clean;
+                    datumEditText.setText(current);
+                    datumEditText.setSelection(sel < current.length() ? sel : current.length());
+                }
+            }
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+            }
+            @Override
+            public void afterTextChanged(Editable s) {
+            }
+        };
+        datumEditText.addTextChangedListener(tw);
+        sumaEditText = (EditText) findViewById(R.id.suma_edittext);
     }
 
     @Override
     public void onClick(View v) {
         switch (v.getId()) {
             case R.id.add_record:
+                String kategoria = "";
                 final String obchod = obchodSpinner.getSelectedItem().toString();
                 final String suma = sumaEditText.getText().toString();
-                final String datum = datumEditText.getText().toString();
+                String datum = datumEditText.getText().toString();
 
-                dbManager.insert(obchod, suma, datum);
+                SimpleDateFormat parser = new SimpleDateFormat("dd/MM/yyyy");
+                Date parsedDate = null;
+                try {
+                    parsedDate = parser.parse(datum);
+                } catch (ParseException e) {
+                    e.printStackTrace();
+                }
+                datum = new SimpleDateFormat("yyyy-MM-dd").format(parsedDate);
+
+
+                list2 = dbManager.selectAll();
+
+                for (int i = 0; i < list2.get(0).size(); i++) {
+                    if (list2.get(0).get(i).equals(obchod))
+                        kategoria = list2.get(1).get(i);
+                }
+
+                dbManager.insert(kategoria, obchod, suma, datum);
 
                 Intent main = new Intent(AddPurchaseActivity.this, ListActivityPurchase.class)
                         .setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
@@ -74,18 +150,6 @@ public class AddPurchaseActivity extends Activity implements OnClickListener {
                 startActivity(main);
                 break;
         }
-    }
-    private int getIndex(Spinner spinner, String myString)
-    {
-        int index = 0;
-
-        for (int i=0;i<spinner.getCount();i++){
-            if (spinner.getItemAtPosition(i).toString().equalsIgnoreCase(myString)){
-                index = i;
-                break;
-            }
-        }
-        return index;
     }
 
 }
