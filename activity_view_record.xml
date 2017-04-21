@@ -43,7 +43,7 @@
         android:layout_width="fill_parent"
         android:layout_height="wrap_content"
         android:layout_below="@id/kategoria"
-        android:layout_marginLeft="200dp"
+        android:layout_marginLeft="170dp"
         android:layout_toRightOf="@id/id"
         android:ellipsize="end"
         android:maxLines="1"
