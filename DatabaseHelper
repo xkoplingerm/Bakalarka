@@ -1,0 +1,102 @@
+package com.example.acerntb.bakalarka;
+
+import android.content.Context;
+import android.database.Cursor;
+import android.database.MatrixCursor;
+import android.database.SQLException;
+import android.database.sqlite.SQLiteDatabase;
+import android.database.sqlite.SQLiteOpenHelper;
+import android.util.Log;
+
+import java.util.ArrayList;
+
+public class DatabaseHelper extends SQLiteOpenHelper {
+
+    // Table Name
+    public static final String TABLE_NAME = "PURCHASE";
+    public static final String TABLE2_NAME = "CATEGORY";
+
+    // Table columns
+    public static final String _ID = "_id";
+    public static final String KATEGORIA = "kategoria";
+    public static final String OBCHOD = "obchod";
+    public static final String SUMA = "suma";
+    public static final String DATUM = "datum";
+
+    // Database Information
+    static final String DB_NAME = "AppDB";
+
+    // database version
+    static final int DB_VERSION = 6;
+
+    // Creating table query
+    private static final String CREATE_TABLE = "create table " + TABLE_NAME + "(" + _ID
+            + " INTEGER PRIMARY KEY AUTOINCREMENT, " + OBCHOD + " TEXT NOT NULL, " + SUMA
+            + " TEXT NOT NULL, " + DATUM + " TEXT NOT NULL);";
+
+    private static final String CREATE_TABLE2 = "create table " + TABLE2_NAME + "(" + _ID
+            + " INTEGER PRIMARY KEY AUTOINCREMENT, " + KATEGORIA + " TEXT NOT NULL, " + OBCHOD
+            + " TEXT NOT NULL UNIQUE);";
+
+    public DatabaseHelper(Context context) {
+        super(context, DB_NAME, null, DB_VERSION);
+    }
+
+    @Override
+    public void onCreate(SQLiteDatabase db) {
+        db.execSQL(CREATE_TABLE);
+        db.execSQL(CREATE_TABLE2);
+    }
+
+    @Override
+    public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
+        db.execSQL("DROP TABLE IF EXISTS " + TABLE_NAME);
+        db.execSQL("DROP TABLE IF EXISTS " + TABLE2_NAME);
+        onCreate(db);
+    }
+
+    public ArrayList<Cursor> getData(String Query){
+        //get writable database
+        SQLiteDatabase sqlDB = this.getWritableDatabase();
+        String[] columns = new String[] { "message" };
+        //an array list of cursor to save two cursors one has results from the query
+        //other cursor stores error message if any errors are triggered
+        ArrayList<Cursor> alc = new ArrayList<Cursor>(2);
+        MatrixCursor Cursor2= new MatrixCursor(columns);
+        alc.add(null);
+        alc.add(null);
+
+        try{
+            String maxQuery = Query ;
+            //execute the query results will be save in Cursor c
+            Cursor c = sqlDB.rawQuery(maxQuery, null);
+
+            //add value to cursor2
+            Cursor2.addRow(new Object[] { "Success" });
+
+            alc.set(1,Cursor2);
+            if (null != c && c.getCount() > 0) {
+
+                alc.set(0,c);
+                c.moveToFirst();
+
+                return alc ;
+            }
+            return alc;
+        } catch(SQLException sqlEx){
+            Log.d("printing exception", sqlEx.getMessage());
+            //if any exceptions are triggered save the error message to cursor an return the arraylist
+            Cursor2.addRow(new Object[] { ""+sqlEx.getMessage() });
+            alc.set(1,Cursor2);
+            return alc;
+        } catch(Exception ex){
+            Log.d("printing exception", ex.getMessage());
+
+            //if any exceptions are triggered save the error message to cursor an return the arraylist
+            Cursor2.addRow(new Object[] { ""+ex.getMessage() });
+            alc.set(1,Cursor2);
+            return alc;
+        }
+    }
+
+}
