@@ -1,4 +1,4 @@
-package com.example.acerntb.bakalarka;
+package com.journaldev.sqlite;
 
 import android.content.ContentValues;
 import android.content.Context;
@@ -7,6 +7,7 @@ import android.database.SQLException;
 import android.database.sqlite.SQLiteDatabase;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
 public class DBManager {
@@ -39,6 +40,62 @@ public class DBManager {
         }
         return list;
     }
+    public int countQuery(){
+        //int sumaCelkovo;
+        //HashMap<String, Integer> pocetNakupovKategorie = new HashMap<String, Integer>();
+        Cursor cursor = database.rawQuery("SELECT COUNT(*) FROM PURCHASE",null);
+        cursor.moveToFirst();
+        while ( !cursor.isAfterLast()) {
+            String a = cursor.getString(cursor.getColumnIndex("COUNT(*)"));
+            cursor.moveToNext();
+        }
+        cursor = database.rawQuery("SELECT kategoria FROM CATEGORY WHERE obchod='tesco'",null);
+        cursor.moveToFirst();
+        while ( !cursor.isAfterLast()) {
+            String a = cursor.getString(cursor.getColumnIndex("kategoria"));
+            cursor.moveToNext();
+        }
+        cursor = database.rawQuery("SELECT SUM(suma) FROM PURCHASE",null);
+        cursor.moveToFirst();
+        while ( !cursor.isAfterLast()) {
+            String a = cursor.getString(cursor.getColumnIndex("SUM(suma)"));
+            cursor.moveToNext();
+        }
+        List<String> sumaKategorie = new ArrayList<String>();
+        List<String> kategorie = new ArrayList<String>();
+        List<List<String>> list = new ArrayList<List<String>>();
+        cursor = database.rawQuery("SELECT SUM(suma),kategoria FROM PURCHASE GROUP BY kategoria",null);
+        cursor.moveToFirst();
+        while ( !cursor.isAfterLast()) {
+            sumaKategorie.add(cursor.getString(cursor.getColumnIndex("SUM(suma)")));
+            kategorie.add(cursor.getString(cursor.getColumnIndex("kategoria")));
+            cursor.moveToNext();
+        }
+        list.add(sumaKategorie);
+        list.add(kategorie);
+
+        cursor = database.rawQuery("SELECT datum FROM PURCHASE WHERE datum>='2000-07'",null);
+        cursor.moveToFirst();
+        while ( !cursor.isAfterLast()) {
+            String a = cursor.getString(cursor.getColumnIndex("datum"));
+            cursor.moveToNext();
+        }
+        return 0;
+    }
+
+    public void selectDate(String year){
+        String a[] = {"01","02","03","04","05","06","07","08","09","10","11","12","13"};
+        for(int month = 0; month < 13; month++) {
+            Cursor cursor = database.rawQuery("SELECT SUM(suma),datum FROM PURCHASE WHERE datum>'"+year+"-"+a[month]+"' AND datum<'"+year+"-"+a[month+1]+"'", null);
+            cursor.moveToFirst();
+            while (!cursor.isAfterLast()) {
+                String b = cursor.getString(cursor.getColumnIndex("SUM(suma)"));
+                String c = cursor.getString(cursor.getColumnIndex("datum"));
+                cursor.moveToNext();
+            }
+        }
+    }
+
     public List<List<String>> selectAll(){
         List<String> obchody = new ArrayList<String>();
         List<String> kategorie = new ArrayList<String>();
@@ -56,23 +113,13 @@ public class DBManager {
         return list;
     }
 
-    public int countQuery(){
-        ArrayList<Cursor> alc2=dbHelper.getData("SELECT COUNT(kategoria) FROM CATEGORY GROUP BY kategoria");
-        //Cursor cursor = database.rawQuery("SELECT COUNT(kategoria) FROM CATEGORY GROUP BY kategoria",null);
-        Cursor cursor = alc2.get(0);
-        if (cursor != null) {
-            cursor.moveToFirst();
-        }
-        int a = cursor.getCount();
-        return a;
-    }
-
     public void close() {
         dbHelper.close();
     }
 
-    public void insert(String obchod, String suma, String datum) {
+    public void insert(String kategoria, String obchod, String suma, String datum) {
         ContentValues contentValue = new ContentValues();
+        contentValue.put(DatabaseHelper.KATEGORIA, kategoria);
         contentValue.put(DatabaseHelper.OBCHOD, obchod);
         contentValue.put(DatabaseHelper.SUMA, suma);
         contentValue.put(DatabaseHelper.DATUM, datum);
